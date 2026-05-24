@@ -4,9 +4,9 @@ from schemas.base import BaseResponse
 from schemas.department import (
     DepartmentCreateSchema,
     DepartmentResponseSchema,
-    DepartmentDetailsSchema,
     DepartmentUpdateSchema,
-    DeleteDepartmentQuerySchema
+    DeleteDepartmentQuerySchema,
+    DepartmentTreeSchema
 )
 from schemas.employee import EmployeeCreateSchema, EmployeeResponseSchema
 from dependencies.providers import get_department_service, get_employee_service
@@ -46,9 +46,9 @@ async def create_employee(
 
 
 @router.get(
-    path="/{department_id}",
+    path="/{department_id}/",
     summary="Get department details",
-    response_model=BaseResponse[DepartmentDetailsSchema],
+    response_model=BaseResponse[DepartmentTreeSchema],
 )
 async def get_department(
     department_id: str,

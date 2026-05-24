@@ -23,12 +23,14 @@ class Department(Base):
         "Department",
         back_populates="parent",
         cascade="all, delete-orphan",
+        lazy="selectin",
     )
 
     employees: Mapped[list["Employee"]] = relationship(
         "Employee",
         back_populates="department",
         cascade="all, delete-orphan",
+        lazy="selectin",
     )
 
 

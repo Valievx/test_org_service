@@ -1,7 +1,7 @@
 from typing import Literal
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field
 
 from .employee import EmployeeResponseSchema
 
@@ -31,7 +31,8 @@ class DepartmentTreeSchema(BaseModel):
     parent_id: str | None
     created_at: datetime
 
-    children: list["DepartmentTreeSchema"] = []
+    employees: list[EmployeeResponseSchema] = Field(default_factory=list)
+    children: list["DepartmentTreeSchema"] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 
@@ -41,65 +42,51 @@ class DepartmentTreeSchema(BaseModel):
         department,
         current_depth: int,
         max_depth: int,
+        include_employees: bool = True,
     ):
-
         if current_depth > max_depth:
             return None
 
-        children = []
+        children = list(department.children or [])
 
-        for child in department.children:
+        employees = []
+        if include_employees:
+            employees = sorted(
+                list(department.employees or []),
+                key=lambda x: x.full_name.lower(),
+            )
+
+            employees = [
+                EmployeeResponseSchema.model_validate(emp)
+                for emp in employees
+            ]
+
+        child_schemas = []
+        for child in children:
             child_schema = cls.from_orm_tree(
                 child,
                 current_depth=current_depth + 1,
                 max_depth=max_depth,
+                include_employees=include_employees,
             )
-
             if child_schema:
-                children.append(child_schema)
+                child_schemas.append(child_schema)
 
         return cls(
             id=department.id,
             name=department.name,
             parent_id=department.parent_id,
             created_at=department.created_at,
-            children=children,
+            employees=employees,
+            children=child_schemas,
         )
-
-
-class DepartmentDetailsSchema(BaseModel):
-    department: DepartmentTreeSchema
-
-    employees: list[EmployeeResponseSchema] = []
 
 
 class DepartmentUpdateSchema(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     parent_id: str | None = None
 
-    @field_validator("name")
-    @classmethod
-    def validate_name(cls, value: str | None):
-        if value is None:
-            return value
-
-        value = value.strip()
-
-        if not value:
-            raise ValueError("Name cannot be empty")
-
-        return value
-
 
 class DeleteDepartmentQuerySchema(BaseModel):
     mode: Literal["cascade", "reassign"]
-
     reassign_to_department_id: str | None = None
-
-    @model_validator(mode="after")
-    def validate_reassign(self):
-
-        if self.mode == "reassign" and self.reassign_to_department_id is None:
-            raise ValueError("Reassign to department_id is required")
-
-        return self

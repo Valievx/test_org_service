@@ -27,20 +27,20 @@ class DepartmentRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_department_with_relations(
-        self,
-        department_id: str,
-    ) -> Department | None:
-
+    async def get_department_detail(self, department_id: str) -> Department | None:
         stmt = (
             select(Department)
             .where(Department.id == department_id)
             .options(
-                selectinload(Department.children),
+                selectinload(Department.children)
+                .selectinload(Department.children)
+                .selectinload(Department.children)
+                .selectinload(Department.children),
                 selectinload(Department.employees),
+                selectinload(Department.children)
+                .selectinload(Department.employees),
             )
         )
-
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
